@@ -1,9 +1,9 @@
-package com.serviceflow.viewmodel
+package com.example.serviceflow.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.serviceflow.model.User
-import com.serviceflow.repository.ServiceFlowRepository
+import com.example.serviceflow.model.User
+import com.example.serviceflow.repository.ServiceFlowRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -21,13 +21,12 @@ class AuthViewModel(
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState
-
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
 
     init {
         viewModelScope.launch {
-            _currentUser.value = repo.getCurrentUser()
+            repo.getCurrentUser().collect { user -> _currentUser.value = user }
         }
     }
 

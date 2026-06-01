@@ -1,9 +1,9 @@
-package com.serviceflow.viewmodel
+package com.example.serviceflow.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.serviceflow.model.OrdemServico
-import com.serviceflow.repository.ServiceFlowRepository
+import com.example.serviceflow.model.OrdemServico
+import com.example.serviceflow.repository.ServiceFlowRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -25,15 +25,20 @@ class FuncionarioViewModel(
 
     private val _uiState = MutableStateFlow(FuncUiState())
     val uiState: StateFlow<FuncUiState> = _uiState
-
     private val _action = MutableStateFlow<FuncAction>(FuncAction.Idle)
     val action: StateFlow<FuncAction> = _action
 
     fun carregarOrdens(funcionarioId: String) {
         viewModelScope.launch {
-            repo.getOrdensDoFuncionario(funcionarioId).collect { lista ->
-                _uiState.update { it.copy(ordens = lista) }
-            }
+            _uiState.update { it.copy(isLoading = true) }
+            repo.getOrdensDoFuncionario(funcionarioId)
+                .catch { e -> 
+                    _action.value = FuncAction.Error(e.message ?: "Erro ao carregar ordens")
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+                .collect { lista ->
+                    _uiState.update { it.copy(ordens = lista, isLoading = false) }
+                }
         }
     }
 

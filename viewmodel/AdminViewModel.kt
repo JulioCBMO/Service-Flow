@@ -1,10 +1,10 @@
-package com.serviceflow.viewmodel
+package com.example.serviceflow.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.serviceflow.model.OrdemServico
-import com.serviceflow.model.User
-import com.serviceflow.repository.ServiceFlowRepository
+import com.example.serviceflow.model.OrdemServico
+import com.example.serviceflow.model.User
+import com.example.serviceflow.repository.ServiceFlowRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -30,28 +30,20 @@ class AdminViewModel(
 
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState
-
     private val _action = MutableStateFlow<AdminAction>(AdminAction.Idle)
     val action: StateFlow<AdminAction> = _action
 
     init {
-        observarOrdens()
-        observarFuncionarios()
-    }
-
-    private fun observarOrdens() {
         viewModelScope.launch {
-            repo.getTodasOrdens().collect { lista ->
-                _uiState.update { it.copy(ordens = lista) }
-            }
+            _uiState.update { it.copy(isLoading = true) }
+            repo.getTodasOrdens()
+                .catch { e -> _uiState.update { it.copy(erro = e.message, isLoading = false) } }
+                .collect { lista -> _uiState.update { it.copy(ordens = lista, isLoading = false) } }
         }
-    }
-
-    private fun observarFuncionarios() {
         viewModelScope.launch {
-            repo.getFuncionarios().collect { lista ->
-                _uiState.update { it.copy(funcionarios = lista) }
-            }
+            repo.getFuncionarios()
+                .catch { e -> _uiState.update { it.copy(erro = e.message) } }
+                .collect { lista -> _uiState.update { it.copy(funcionarios = lista) } }
         }
     }
 
@@ -73,15 +65,9 @@ class AdminViewModel(
         }
     }
 
-    fun departamentosDisponiveis(): List<String> =
-        _uiState.value.ordens.map { it.departamento }.distinct().sorted()
+    fun departamentosDisponiveis(): List<String> = _uiState.value.ordens.map { it.departamento }.distinct().sorted()
 
-    fun criarOrdem(
-        titulo: String,
-        descricao: String,
-        departamento: String,
-        funcionario: User
-    ) {
+    fun criarOrdem(titulo: String, descricao: String, departamento: String, funcionario: User) {
         if (titulo.isBlank() || descricao.isBlank() || departamento.isBlank()) {
             _action.value = AdminAction.Error("Preencha todos os campos obrigatórios.")
             return
